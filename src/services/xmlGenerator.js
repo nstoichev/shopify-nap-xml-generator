@@ -83,10 +83,6 @@ export function generateAuditXml(auditModel) {
     throw new Error('No audit data available for XML generation.');
   }
 
-  if (!auditModel.orders?.length) {
-    throw new Error('No orders to include in the XML file.');
-  }
-
   const auditRoot = create({ version: '1.0', encoding: 'UTF-8' }).ele('audit');
 
   auditRoot.ele('eik').txt(auditModel.eik);
@@ -99,7 +95,7 @@ export function generateAuditXml(auditModel) {
 
   const orderContainer = auditRoot.ele('order');
 
-  for (const order of auditModel.orders) {
+  for (const order of auditModel.orders || []) {
     buildOrderNode(orderContainer, order);
   }
 

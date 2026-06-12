@@ -3,7 +3,7 @@ import FileUploader from './components/FileUploader.jsx';
 import ValidationResults from './components/ValidationResults.jsx';
 import DownloadButton from './components/DownloadButton.jsx';
 import { parseShopifyCsv } from './services/csvParser.js';
-import { mapShopifyToAudit, validateShopConfig } from './services/shopifyMapper.js';
+import { mapShopifyToAudit, createEmptyAudit, validateShopConfig } from './services/shopifyMapper.js';
 import { generateAuditXml, buildXmlFilename } from './services/xmlGenerator.js';
 import { validateAuditXml, validateAuditModel } from './services/xmlValidator.js';
 import { todayIsoDate } from './utils/helpers.js';
@@ -35,15 +35,56 @@ export default function App() {
     setShopConfig((prev) => ({ ...prev, [field]: value }));
   }
 
-  async function handleFileSelect(file) {
+  function resetOutput() {
     setError('');
-    setProcessing(true);
-    setSelectedFileName(file.name);
     setParseErrors([]);
     setMappingErrors([]);
     setSummary(null);
     setXmlContent('');
     setValidation(null);
+  }
+
+  function finalizeAudit(audit, mapSummary, mapErrors = [], allowEmptyOrders = false) {
+    setMappingErrors(mapErrors);
+    setSummary(mapSummary);
+
+    const modelErrors = validateAuditModel(audit, { allowEmptyOrders });
+    if (modelErrors.length > 0) {
+      throw new Error(modelErrors.join(' '));
+    }
+
+    const xml = generateAuditXml(audit);
+    const xmlValidation = validateAuditXml(xml);
+
+    setXmlContent(xml);
+    setValidation(xmlValidation);
+    setFilename(buildXmlFilename(audit));
+  }
+
+  function handleGenerateEmpty() {
+    resetOutput();
+    setSelectedFileName('');
+    setProcessing(true);
+
+    try {
+      const configErrors = validateShopConfig(shopConfig, { requireReportPeriod: true });
+      if (configErrors.length > 0) {
+        throw new Error(configErrors.join(' '));
+      }
+
+      const { audit, summary: mapSummary } = createEmptyAudit(shopConfig);
+      finalizeAudit(audit, mapSummary, [], true);
+    } catch (err) {
+      setError(err.message || 'An unexpected error occurred.');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function handleFileSelect(file) {
+    resetOutput();
+    setProcessing(true);
+    setSelectedFileName(file.name);
 
     try {
       const configErrors = validateShopConfig(shopConfig);
@@ -55,20 +96,7 @@ export default function App() {
       setParseErrors(csvWarnings);
 
       const { audit, summary: mapSummary, errors: mapErrors } = mapShopifyToAudit(rows, shopConfig);
-      setMappingErrors(mapErrors);
-      setSummary(mapSummary);
-
-      const modelErrors = validateAuditModel(audit);
-      if (modelErrors.length > 0) {
-        throw new Error(modelErrors.join(' '));
-      }
-
-      const xml = generateAuditXml(audit);
-      const xmlValidation = validateAuditXml(xml);
-
-      setXmlContent(xml);
-      setValidation(xmlValidation);
-      setFilename(buildXmlFilename(audit));
+      finalizeAudit(audit, mapSummary, mapErrors);
     } catch (err) {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
@@ -142,7 +170,7 @@ export default function App() {
               />
             </label>
             <label>
-              Report month (optional)
+              Report month
               <input
                 type="text"
                 value={shopConfig.mon}
@@ -152,7 +180,7 @@ export default function App() {
               />
             </label>
             <label>
-              Report year (optional)
+              Report year
               <input
                 type="text"
                 value={shopConfig.god}
@@ -162,6 +190,17 @@ export default function App() {
               />
             </label>
           </div>
+          <p className="section-help">
+            Report month and year are optional when uploading a CSV (derived from orders). Required for generating an empty file.
+          </p>
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={handleGenerateEmpty}
+            disabled={processing}
+          >
+            Generate empty file
+          </button>
         </section>
 
         <section className="card">
@@ -180,6 +219,12 @@ export default function App() {
           <h2>2. Processing Summary</h2>
           {summary ? (
             <dl className="summary-grid">
+              {summary.isEmpty && (
+                <div className="summary-grid__full">
+                  <dt>File type</dt>
+                  <dd>Empty submission (no orders)</dd>
+                </div>
+              )}
               <div>
                 <dt>Total orders found</dt>
                 <dd>{summary.totalOrdersFound}</dd>
@@ -204,7 +249,7 @@ export default function App() {
               </div>
             </dl>
           ) : (
-            <p className="placeholder">Upload a CSV to see processing results.</p>
+            <p className="placeholder">Upload a CSV or generate an empty file to see results.</p>
           )}
 
           <ValidationResults

@@ -206,8 +206,12 @@ function countChildren(elements) {
 
 /**
  * Validate the internal audit model before XML generation.
+ *
+ * @param {object} auditModel
+ * @param {{ allowEmptyOrders?: boolean }} options
  */
-export function validateAuditModel(auditModel) {
+export function validateAuditModel(auditModel, options = {}) {
+  const { allowEmptyOrders = false } = options;
   const errors = [];
 
   if (!auditModel) {
@@ -221,7 +225,7 @@ export function validateAuditModel(auditModel) {
     }
   }
 
-  if (!auditModel.orders?.length) {
+  if (!allowEmptyOrders && !auditModel.orders?.length) {
     errors.push('At least one order is required.');
   }
 

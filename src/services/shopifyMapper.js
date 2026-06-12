@@ -276,9 +276,48 @@ function resolveReportPeriod(orders, shopConfig) {
 }
 
 /**
- * Validate shop configuration before mapping.
+ * Build an empty audit model (header only, no orders) for periods with no sales.
+ *
+ * @param {object} shopConfig - Shop metadata entered by the user
+ * @returns {{ audit: object, summary: object, errors: string[] }}
  */
-export function validateShopConfig(config) {
+export function createEmptyAudit(shopConfig) {
+  const reportPeriod = resolveReportPeriod([], shopConfig);
+
+  const audit = {
+    eik: String(shopConfig.eik || '').trim(),
+    e_shop_n: truncate(shopConfig.e_shop_n || '', 10),
+    domain_name: truncate(shopConfig.domain_name || '', 200),
+    e_shop_type: Number(shopConfig.e_shop_type) || 1,
+    creation_date: shopConfig.creation_date,
+    mon: reportPeriod.mon,
+    god: reportPeriod.god,
+    orders: [],
+    returnedOrders: [],
+  };
+
+  return {
+    audit,
+    summary: {
+      totalOrdersFound: 0,
+      ordersMapped: 0,
+      returnedOrders: 0,
+      reportMonth: reportPeriod.mon,
+      reportYear: reportPeriod.god,
+      isEmpty: true,
+    },
+    errors: [],
+  };
+}
+
+/**
+ * Validate shop configuration before mapping or empty-file generation.
+ *
+ * @param {object} config
+ * @param {{ requireReportPeriod?: boolean }} options
+ */
+export function validateShopConfig(config, options = {}) {
+  const { requireReportPeriod = false } = options;
   const errors = [];
 
   if (!config.eik || config.eik.length < 9 || config.eik.length > 13) {
@@ -301,7 +340,17 @@ export function validateShopConfig(config) {
     errors.push('Creation date is required.');
   }
 
-  if (config.mon && !/^(0[1-9]|1[0-2])$/.test(String(config.mon).padStart(2, '0'))) {
+  const mon = config.mon ? String(config.mon).padStart(2, '0') : '';
+
+  if (requireReportPeriod && !config.mon) {
+    errors.push('Report month is required for an empty file.');
+  }
+
+  if (requireReportPeriod && !config.god) {
+    errors.push('Report year is required for an empty file.');
+  }
+
+  if (config.mon && !/^(0[1-9]|1[0-2])$/.test(mon)) {
     errors.push('Report month must be between 01 and 12.');
   }
 

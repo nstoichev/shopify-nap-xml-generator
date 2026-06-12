@@ -283,6 +283,21 @@ body {
   background: #1e3a5f;
 }
 
+.btn--secondary {
+  margin-top: 1rem;
+  background: #fff;
+  color: #2d5a87;
+  border: 2px solid #2d5a87;
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: #f0f4f8;
+}
+
+.summary-grid__full {
+  grid-column: 1 / -1;
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
