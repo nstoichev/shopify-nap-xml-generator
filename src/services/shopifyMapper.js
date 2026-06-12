@@ -276,13 +276,54 @@ function resolveReportPeriod(orders, shopConfig) {
 }
 
 /**
- * Build an empty audit model (header only, no orders) for periods with no sales.
+ * Build a zero-value placeholder order.
+ *
+ * dec_audit.xsd requires <order> to contain at least one <orderenum>.
+ * For a no-sales period, this placeholder keeps the XML schema-valid while
+ * preserving the summary as zero real orders.
+ */
+function createEmptyOrderPlaceholder(reportPeriod, shopConfig) {
+  const periodDate = `${reportPeriod.god}-${reportPeriod.mon}-01`;
+  const documentDate = shopConfig.creation_date || periodDate;
+
+  return {
+    ord_n: `NO_ORDERS_${reportPeriod.god}_${reportPeriod.mon}`,
+    ord_d: periodDate,
+    doc_n: 0,
+    doc_date: documentDate,
+    articles: [
+      {
+        art_name: 'NO ORDERS',
+        art_quant: '0.00',
+        art_price: '0.00',
+        art_vat_rate: 0,
+        art_vat: '0.00',
+        art_sum: '0.00',
+      },
+    ],
+    ord_total1: '0.00',
+    ord_disc: '0.00',
+    ord_vat: '0.00',
+    ord_total2: '0.00',
+    paym: 5,
+    pos_n: '',
+    trans_n: '',
+    proc_id: '',
+  };
+}
+
+/**
+ * Build an audit model for periods with no sales.
+ *
+ * The XML still includes one zero-value orderenum because the supplied XSD
+ * does not permit an empty <order/> element.
  *
  * @param {object} shopConfig - Shop metadata entered by the user
  * @returns {{ audit: object, summary: object, errors: string[] }}
  */
 export function createEmptyAudit(shopConfig) {
   const reportPeriod = resolveReportPeriod([], shopConfig);
+  const placeholderOrder = createEmptyOrderPlaceholder(reportPeriod, shopConfig);
 
   const audit = {
     eik: String(shopConfig.eik || '').trim(),
@@ -292,7 +333,7 @@ export function createEmptyAudit(shopConfig) {
     creation_date: shopConfig.creation_date,
     mon: reportPeriod.mon,
     god: reportPeriod.god,
-    orders: [],
+    orders: [placeholderOrder],
     returnedOrders: [],
   };
 
@@ -306,7 +347,9 @@ export function createEmptyAudit(shopConfig) {
       reportYear: reportPeriod.god,
       isEmpty: true,
     },
-    errors: [],
+    errors: [
+      'Empty-period file includes one zero-value placeholder order so the XML can pass dec_audit.xsd validation.',
+    ],
   };
 }
 

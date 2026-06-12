@@ -109,6 +109,18 @@ audit
 
 Reference files in `public/` (`dec_audit.xsd`, `vik_simple.xml`) are used as specification material. Validation rules in `src/utils/schema.js` are derived from the XSD.
 
+## Empty periods
+
+`dec_audit.xsd` requires `<order>` to contain at least one `<orderenum>`, so a truly empty `<order/>` file does not pass strict XSD validation.
+
+When **Generate empty file** is used, the app creates one zero-value placeholder order:
+
+- `ord_n`: `NO_ORDERS_<year>_<month>`
+- all quantities, prices, VAT, discounts, and totals: `0.00`
+- `paym`: `5`
+
+The processing summary still shows `0` real orders. The placeholder exists only so the generated XML follows the provided XSD structure.
+
 ## Deploy to Vercel
 
 This project is a static Vite frontend. No server-side code is required.

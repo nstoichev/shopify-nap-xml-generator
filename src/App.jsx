@@ -72,8 +72,8 @@ export default function App() {
         throw new Error(configErrors.join(' '));
       }
 
-      const { audit, summary: mapSummary } = createEmptyAudit(shopConfig);
-      finalizeAudit(audit, mapSummary, [], true);
+      const { audit, summary: mapSummary, errors: emptyWarnings } = createEmptyAudit(shopConfig);
+      finalizeAudit(audit, mapSummary, emptyWarnings, true);
     } catch (err) {
       setError(err.message || 'An unexpected error occurred.');
     } finally {

@@ -56,8 +56,8 @@ export const AUDIT_SCHEMA = {
       type: 'complex',
       required: true,
       children: ['orderenum'],
-      // orderenum may be absent when submitting a period with no orders
-      minChildren: { orderenum: 0 },
+      // dec_audit.xsd requires at least one orderenum inside order.
+      minChildren: { orderenum: 1 },
     },
     orderenum: {
       type: 'complex',
