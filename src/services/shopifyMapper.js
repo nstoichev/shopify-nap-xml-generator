@@ -1,5 +1,4 @@
 import {
-  extractInteger,
   formatDecimal,
   getColumnValue,
   monthYearFromDate,
@@ -11,6 +10,20 @@ import {
 import { SHOPIFY_COLUMNS } from '../utils/schema.js';
 
 const DEFAULT_VAT_RATE = 20;
+
+/**
+ * NAP expects DOC_N as a 10-digit integer-like value.
+ * Leading zeroes are kept in the XML text while still satisfying xs:integer.
+ */
+function formatDocumentNumber(value) {
+  const digits = String(value ?? '').replace(/\D/g, '');
+
+  if (digits) {
+    return digits.slice(-10).padStart(10, '0');
+  }
+
+  return '0000000000';
+}
 
 /**
  * Map Shopify payment method text to NAP paym code (1-6).
@@ -152,7 +165,7 @@ function mapOrderGroup(orderName, rows, mappingErrors) {
   const paymentMethod = getColumnValue(firstRow, SHOPIFY_COLUMNS.paymentMethod);
   const paym = mapPaymentMethod(paymentMethod);
 
-  const docNumber = extractInteger(orderName, Date.now() % 1000000000);
+  const docNumber = formatDocumentNumber(orderName);
 
   return {
     ord_n: truncate(String(orderName).replace(/^#/, ''), 300),
@@ -232,7 +245,7 @@ export function mapShopifyToAudit(rows, shopConfig) {
     god: reportPeriod.god,
     orders: orders.map(stripInternalMeta),
     returnedOrders,
-    r_ord: returnedOrders.length > 0 ? returnedOrders.length : undefined,
+    r_ord: returnedOrders.length,
     r_total:
       returnedOrders.length > 0
         ? formatDecimal(returnedOrders.reduce((sum, item) => sum + parseNumber(item.r_amount), 0))
@@ -284,13 +297,12 @@ function resolveReportPeriod(orders, shopConfig) {
  */
 function createEmptyOrderPlaceholder(reportPeriod, shopConfig) {
   const periodDate = `${reportPeriod.god}-${reportPeriod.mon}-01`;
-  const documentDate = shopConfig.creation_date || periodDate;
 
   return {
     ord_n: `NO_ORDERS_${reportPeriod.god}_${reportPeriod.mon}`,
     ord_d: periodDate,
-    doc_n: 0,
-    doc_date: documentDate,
+    doc_n: '0000000000',
+    doc_date: periodDate,
     articles: [
       {
         art_name: 'NO ORDERS',
@@ -335,6 +347,7 @@ export function createEmptyAudit(shopConfig) {
     god: reportPeriod.god,
     orders: [placeholderOrder],
     returnedOrders: [],
+    r_ord: 0,
   };
 
   return {

@@ -161,13 +161,16 @@ function validateSimpleValue(value, schema, path, errors) {
     }
 
     case 'integer': {
-      const intVal = parseInt(text, 10);
-      if (Number.isNaN(intVal) || String(intVal) !== text) {
+      if (!/^-?\d+$/.test(text)) {
         errors.push(`${label} must be an integer at ${path}, got "${text}".`);
         break;
       }
+      const intVal = parseInt(text, 10);
       if (schema.enum && !schema.enum.includes(intVal)) {
         errors.push(`${label} must be one of [${schema.enum.join(', ')}] at ${path}, got ${intVal}.`);
+      }
+      if (schema.digitLength !== undefined && text.replace(/^-/, '').length !== schema.digitLength) {
+        errors.push(`${label} must be ${schema.digitLength} digits at ${path}, got "${text}".`);
       }
       if (schema.min !== undefined && intVal < schema.min) {
         errors.push(`${label} must be >= ${schema.min} at ${path}.`);

@@ -116,8 +116,11 @@ Reference files in `public/` (`dec_audit.xsd`, `vik_simple.xml`) are used as spe
 When **Generate empty file** is used, the app creates one zero-value placeholder order:
 
 - `ord_n`: `NO_ORDERS_<year>_<month>`
+- `ord_d` and `doc_date`: first day of the selected report month
+- `doc_n`: `0000000000` (10 digits)
 - all quantities, prices, VAT, discounts, and totals: `0.00`
 - `paym`: `5`
+- `r_ord`: `0`
 
 The processing summary still shows `0` real orders. The placeholder exists only so the generated XML follows the provided XSD structure.
 

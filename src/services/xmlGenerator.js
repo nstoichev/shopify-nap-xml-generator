@@ -46,11 +46,12 @@ function buildOrderNode(parentOrder, order) {
  * Build returned order nodes when present.
  */
 function buildReturnedOrders(auditRoot, auditModel) {
+  // NAP requires r_ord even when there are no returned orders.
+  auditRoot.ele('r_ord').txt(String(auditModel.r_ord ?? auditModel.returnedOrders?.length ?? 0));
+
   if (!auditModel.returnedOrders?.length) {
     return;
   }
-
-  auditRoot.ele('r_ord').txt(String(auditModel.r_ord ?? auditModel.returnedOrders.length));
 
   const rorder = auditRoot.ele('rorder');
   for (const returned of auditModel.returnedOrders) {

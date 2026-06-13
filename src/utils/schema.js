@@ -7,8 +7,9 @@ export const AUDIT_SCHEMA = {
   elements: {
     audit: {
       type: 'complex',
-      children: ['eik', 'e_shop_n', 'domain_name', 'e_shop_type', 'creation_date', 'mon', 'god', 'order'],
-      optionalChildren: ['r_ord', 'rorder', 'r_total'],
+      // r_ord is optional in the XSD, but NAP rejects files without it.
+      children: ['eik', 'e_shop_n', 'domain_name', 'e_shop_type', 'creation_date', 'mon', 'god', 'order', 'r_ord'],
+      optionalChildren: ['rorder', 'r_total'],
     },
     eik: {
       type: 'string',
@@ -77,7 +78,7 @@ export const AUDIT_SCHEMA = {
     },
     ord_n: { type: 'string', required: true, maxLength: 300, label: 'Номер на поръчка' },
     ord_d: { type: 'date', required: true, label: 'Дата на поръчка' },
-    doc_n: { type: 'integer', required: true, label: 'Номер на документ' },
+    doc_n: { type: 'integer', required: true, digitLength: 10, label: 'Номер на документ' },
     doc_date: { type: 'date', required: true, label: 'Дата на документ' },
     art: {
       type: 'complex',
@@ -103,7 +104,7 @@ export const AUDIT_SCHEMA = {
     pos_n: { type: 'string', optional: true, maxLength: 200, label: 'Виртуален ПОС' },
     trans_n: { type: 'string', optional: true, maxLength: 200, label: 'Транзакция' },
     proc_id: { type: 'string', optional: true, maxLength: 200, label: 'Платежен доставчик' },
-    r_ord: { type: 'integer', optional: true, label: 'Брой върнати поръчки' },
+    r_ord: { type: 'integer', required: true, label: 'Брой върнати поръчки' },
     rorder: {
       type: 'complex',
       optional: true,
