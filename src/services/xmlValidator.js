@@ -48,6 +48,7 @@ export function validateAuditXml(xmlString) {
   }
 
   validateComplexElement(audit, 'audit', '', errors, warnings);
+  validateOrderTotalConsistency(audit, errors);
 
   return {
     valid: errors.length === 0,
@@ -205,6 +206,38 @@ function countChildren(elements) {
     acc[node.nodeName] = (acc[node.nodeName] || 0) + 1;
     return acc;
   }, {});
+}
+
+/**
+ * NAP rejects orders when net + VAT does not equal gross after currency rounding.
+ */
+function validateOrderTotalConsistency(auditElement, errors) {
+  const orders = Array.from(auditElement.getElementsByTagName('orderenum'));
+
+  for (const order of orders) {
+    const orderNumber = getDirectChildText(order, 'ord_n') || 'unknown';
+    const ordTotal1 = parseFloat(getDirectChildText(order, 'ord_total1'));
+    const ordVat = parseFloat(getDirectChildText(order, 'ord_vat'));
+    const ordTotal2 = parseFloat(getDirectChildText(order, 'ord_total2'));
+
+    if ([ordTotal1, ordVat, ordTotal2].some((value) => Number.isNaN(value))) {
+      continue;
+    }
+
+    const expectedGross = Math.round((ordTotal1 + ordVat + Number.EPSILON) * 100) / 100;
+    const actualGross = Math.round((ordTotal2 + Number.EPSILON) * 100) / 100;
+
+    if (expectedGross !== actualGross) {
+      errors.push(
+        `Order "${orderNumber}" totals are inconsistent: ord_total1 + ord_vat must equal ord_total2.`
+      );
+    }
+  }
+}
+
+function getDirectChildText(element, childName) {
+  const child = Array.from(element.children).find((node) => node.nodeName === childName);
+  return child?.textContent?.trim() ?? '';
 }
 
 /**

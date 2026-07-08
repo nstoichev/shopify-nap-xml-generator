@@ -147,19 +147,18 @@ function mapOrderGroup(orderName, rows, mappingErrors) {
     return null;
   }
 
-  const subtotal = parseNumber(getColumnValue(firstRow, SHOPIFY_COLUMNS.subtotal));
   const taxes = parseNumber(getColumnValue(firstRow, SHOPIFY_COLUMNS.taxes));
   const total = parseNumber(getColumnValue(firstRow, SHOPIFY_COLUMNS.total));
   const discount = parseNumber(getColumnValue(firstRow, SHOPIFY_COLUMNS.discountAmount));
 
-  let ordTotal2 = total > 0 ? total : articles.reduce((sum, item) => sum + parseNumber(item.art_sum), 0);
-  let ordVat = taxes > 0 ? taxes : articles.reduce((sum, item) => sum + parseNumber(item.art_vat), 0);
-  let ordTotal1 =
-    subtotal > 0 ? subtotal : articles.reduce((sum, item) => sum + parseNumber(item.art_price) * parseNumber(item.art_quant), 0);
+  const articleGrossTotal = articles.reduce((sum, item) => sum + parseNumber(item.art_sum), 0);
+  const articleVatTotal = articles.reduce((sum, item) => sum + parseNumber(item.art_vat), 0);
 
-  ordTotal1 = roundTo(ordTotal1);
-  ordVat = roundTo(ordVat);
-  ordTotal2 = roundTo(ordTotal2);
+  // Shopify exports for this store contain VAT-inclusive totals. NAP expects:
+  // ord_total1 (net) + ord_vat = ord_total2 (gross).
+  const ordTotal2 = roundTo(total > 0 ? total : articleGrossTotal);
+  const ordVat = roundTo(taxes > 0 ? taxes : articleVatTotal);
+  const ordTotal1 = roundTo(ordTotal2 - ordVat);
   const ordDisc = roundTo(discount);
 
   const paymentMethod = getColumnValue(firstRow, SHOPIFY_COLUMNS.paymentMethod);
